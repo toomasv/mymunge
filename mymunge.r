@@ -96,6 +96,7 @@ REBOL [
 				Tom added to /group action blocks
 				Tom removed compose/deep from group
 				Tom removed "flip" from group actions
+		1.0.10	Tom added rowid comparison to /where (e.g. [rowid < 10] or [find [1 10 20 30] rowid])
 	}
 ]
 
@@ -338,7 +339,7 @@ context [
 		/delete "Delete matching rows (returns original block)"
 		/part "Offset position(s) to retrieve"
 			columns [block! integer! word!]
-		/where "Rowid or expression that can reference columns as c1 or A, c2 or B, etc"
+		/where "Rowid or expression that can reference columns as c1 or A, c2 or B, rowid etc" ; Tom added rowid
 			condition [block! integer!]
 		/headings "Returns heading words as first row (unless condition is integer)"
 		/compact "Remove blank rows"
@@ -348,7 +349,7 @@ context [
 			inner-size [integer!] "Size of each record"
 			cols [block!] "Offset position(s) to retrieve in merged block"
 			keys [block!] "Outer/inner join column pairs"
-		/group "One of count, flip, max, min, sum, avg, collect"
+		/group "One of count, flip, max, min, sum, avg, collect" ; Tom added avg, collect (flip doesn't work)
 			having [word! block!] "Word or expression that can reference the initial result set column as count, flip, max, etc"
 		/order "Sort result set"
 		/save "Write result to a delimited or Excel file"
@@ -396,6 +397,8 @@ context [
 			not update
 			either part [foreach i to block! columns [append blk pick spec i]][repeat i size [append blk pick spec i]]
 		]
+		
+		rowid: 0
 
 		case [
 			integer? condition [
@@ -428,8 +431,10 @@ context [
 				]
 				i: 0
 				either where [
+					bind condition 'rowid ; Tom
 					do compose/deep [
 						foreach [(row)] data [
+							++ rowid ; Tom
 							all [(condition) (blk)]
 							i: i + (size)
 						]
@@ -439,14 +444,16 @@ context [
 			]
 			delete [
 				either where [
+					bind condition 'rowid ; Tom
 					do compose/deep [
-						remove-each [(row)] data [all [(condition)]]
+						remove-each [(row)] data [++ rowid all [(condition)]] ; Tom
 					]
 				][clear data]
 				return data
 			]
 			part [
 				either where [
+					bind condition 'rowid ; Tom
 					either block? columns [
 						part: reduce ['reduce copy []]
 						foreach col columns [
@@ -455,6 +462,7 @@ context [
 					][part: pick row columns]
 					do compose/deep [
 						foreach [(row)] data [
+							++ rowid ; Tom
 							all [
 								(condition)
 								append blk (part)
@@ -479,8 +487,10 @@ context [
 				data: blk
 			]
 			where [
+				bind condition 'rowid ; Tom
 				do compose/deep [
 					foreach [(row)] data [
+						++ rowid ; Tom
 						all [(condition) append blk reduce [(row)]]
 					]
 				]
@@ -550,19 +560,32 @@ context [
 			data: blk
 		]
 		if group [
-			sum: func [blk [block!] /local i][i: 0 foreach n blk [i: i + n]]
-			avg: func [blk [block!]][divide sum blk length? blk]
-			unless (length? having: to block! having) = (length? intersect having [count flip max min sum avg collect]) ; Tom muutis 12.04.15
-				[cause-error 'user 'message "Invalid group operation"]
 			i: s: c: 0 res: copy [] blk: copy []
+			sum: funct [blk [block!]][i: 0 foreach n blk [i: i + n]]
+			avg: funct [blk [block!]][divide sum blk length? blk]
+			get-res: [
+				foreach operation having [
+					append res switch operation [
+						max [first maximum-of val]
+						min [first minimum-of val]
+						sum [sum val]
+						avg [avg val]
+						collect [reduce [val]]
+						count [length? val]
+					]
+				] 
+				insert insert tail blk group either (length? res) = 1 [res][reduce [res]]
+			]
+			unless (length? having: to block! having) = (length? intersect having [count flip max min sum avg collect])
+				[cause-error 'user 'message "Invalid group operation"]
 			either size = 1 [
 				foreach operation having [
-					append res switch operation [ ;Tom changed 12.04.15
+					append res switch operation [
 						count [
 							data1: copy data
 							sort data1 
 							group: copy/part data1 size
-							loop rows [;compose/deep [ Tom changed 15.04.15 -- removed parentheses (size)
+							loop rows [
 								either group = copy/part data1 size [++ i][
 									insert insert tail blk group i
 									group: copy/part data1 size
@@ -588,43 +611,20 @@ context [
 			][
 				val: copy []
 				sort/skip/all data size
-				n: length? having
-				group: copy/part data size - 1
-				;loop divide length? data size compose/deep [ ;Tom muutis 13.04.15
-				loop rows [ ;compose/deep
-					either group = copy/part data (size - 1) [
+				n: 1 ;length? having
+				group: copy/part data size - n
+				loop rows [
+					either group = copy/part data (size - n) [
 						append val pick data size
 					] [
-						foreach operation having [
-							append res switch operation [
-								max [first maximum-of val]
-								min [first minimum-of val]
-								sum [sum val]
-								avg [avg val]
-								collect [reduce [val]]
-								count [length? val]
-							]
-						]
-						
-						insert insert tail blk group (
-							either (length? res) = 1 [first reduce res][reduce res]
-						)
-						group: copy/part data (size - 1)
-						val: to block! pick data size res: copy []
+						do get-res
+						group: copy/part data (size - n)
+						val: to block! pick data size 
+						res: copy []
 					]
 					data: skip data (size)
 				] 
-				foreach operation having [
-					append res switch operation [
-						max [first maximum-of val]
-						min [first minimum-of val]
-						sum [sum val]
-						avg [avg val]
-						collect [reduce [val]]
-						count [length? val]
-					]
-				]
-				insert insert tail blk group either (length? res) = 1 [first res][res]
+				do get-res
 				data: blk
 				;poke row size operation ; Tom commented out 14.04.15
 			]
