@@ -98,7 +98,7 @@ REBOL [
 				Tom removed "flip" from group actions
 		1.0.10	Tom added rowid comparison to /where (e.g. [rowid < 10] or [find [1 10 20 30] rowid])
 		1.0.11	Tom Changed /update
-				Added references to columns (eg c1...) and rowid. Functions may be used (eg [ajoin [rowid ") " c1]])
+				Added references to columns (eg [c1]...) and [rowid]. Functions may be used (eg [ajoin [rowid ") " c1]]). To swap columns [1 [c2] 2 [c1]]
 	}
 ]
 
@@ -336,7 +336,7 @@ context [
 		"Load and/or manipulate a block of tabular (column and row) values."
 		data [block! file!] "REBOL block, CSV or Excel file"
 		spec [integer! block! none!] "Size of each record or block of heading words (none! gets cols? file)"
-		/update "Offset/value pairs (returns original block). Value can be expression referencing columns (eg c1...) and rowid (eg [ajoin [rowid ") " c1]])"
+		/update "Offset/value pairs (returns original block). Value can be expression referencing columns (eg [c1]...) and rowid (eg [ajoin [rowid ") " c1]])"
 			action [block!]
 		/delete "Delete matching rows (returns original block)"
 		/part "Offset position(s) to retrieve"
