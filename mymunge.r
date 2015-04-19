@@ -334,7 +334,7 @@ context [
 		"Load and/or manipulate a block of tabular (column and row) values."
 		data [block! file!] "REBOL block, CSV or Excel file"
 		spec [integer! block! none!] "Size of each record or block of heading words (none! gets cols? file)"
-		/update "Offset/value pairs (returns original block)"
+		/update "Offset/value pairs (returns original block). Value can be expression referencing columns (eg c1...) and rowid (eg [ajoin [rowid ") " c1]])"
 			action [block!]
 		/delete "Delete matching rows (returns original block)"
 		/part "Offset position(s) to retrieve"
