@@ -97,6 +97,8 @@ REBOL [
 				Tom removed compose/deep from group
 				Tom removed "flip" from group actions
 		1.0.10	Tom added rowid comparison to /where (e.g. [rowid < 10] or [find [1 10 20 30] rowid])
+		1.0.11	Tom Changed /update
+				Added references to columns (eg c1...) and rowid. Functions may be used (eg [ajoin [rowid ") " c1]])
 	}
 ]
 
@@ -430,11 +432,11 @@ context [
 					]
 				]
 				i: 0
-				either where [bind condition 'rowid bind blk 'rowid][bind blk 'rowid] ; Tom
+				either where [bind condition 'rowid bind blk 'rowid][bind blk 'rowid] ; Tom 19.04.15
 				do compose/deep [
 					foreach [(row)] data [
 						++ rowid ; Tom
-						either where [all [(condition) (blk)]][(blk)] ; Tom
+						either where [all [(condition) (blk)]][(blk)] ; Tom 19.04.15
 						i: i + (size)
 					]
 				]
