@@ -339,7 +339,7 @@ context [
 		/delete "Delete matching rows (returns original block)"
 		/part "Offset position(s) to retrieve"
 			columns [block! integer! word!]
-		/where "Rowid or expression that can reference columns as c1 or A, c2 or B, rowid etc" ; Tom added rowid
+		/where "Rowid or expression that can reference columns as c1 or A, c2 or B, specific rows by rowid (eg [rowid < 10]) etc" ; Tom added reference to rowid
 			condition [block! integer!]
 		/headings "Returns heading words as first row (unless condition is integer)"
 		/compact "Remove blank rows"
@@ -430,16 +430,14 @@ context [
 					]
 				]
 				i: 0
-				either where [
-					bind condition 'rowid ; Tom
-					do compose/deep [
-						foreach [(row)] data [
-							++ rowid ; Tom
-							all [(condition) (blk)]
-							i: i + (size)
-						]
+				either where [bind condition 'rowid bind blk 'rowid][bind blk 'rowid] ; Tom
+				do compose/deep [
+					foreach [(row)] data [
+						++ rowid ; Tom
+						either where [all [(condition) (blk)]][(blk)] ; Tom
+						i: i + (size)
 					]
-				][loop rows compose [(blk) i: i + (size)]]
+				]
 				return data
 			]
 			delete [
