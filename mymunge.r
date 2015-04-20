@@ -97,7 +97,7 @@ REBOL [
 				Tom removed compose/deep from group
 				Tom removed "flip" from group actions
 		1.0.10	Tom added rowid comparison to /where (e.g. [rowid < 10] or [find [1 10 20 30] rowid])
-		1.0.11	Tom Changed /update
+		1.0.11	Tom changed /update:
 				Added references to columns (eg [c1]...) and [rowid]. Functions may be used (eg [ajoin [rowid ") " c1]]). To swap columns [1 [c2] 2 [c1]]
 	}
 ]
@@ -336,7 +336,7 @@ context [
 		"Load and/or manipulate a block of tabular (column and row) values."
 		data [block! file!] "REBOL block, CSV or Excel file"
 		spec [integer! block! none!] "Size of each record or block of heading words (none! gets cols? file)"
-		/update "Offset/value pairs (returns original block). Value can be expression referencing columns (eg [c1]...) and rowid (eg [ajoin [rowid ") " c1]])"
+		/update "Offset/value pairs (returns original block). Value can be expression referencing columns (eg [c1]...) and rowid (eg [ajoin [rowid {) } c1]])"
 			action [block!]
 		/delete "Delete matching rows (returns original block)"
 		/part "Offset position(s) to retrieve"
@@ -351,7 +351,7 @@ context [
 			inner-size [integer!] "Size of each record"
 			cols [block!] "Offset position(s) to retrieve in merged block"
 			keys [block!] "Outer/inner join column pairs"
-		/group "One of count, flip, max, min, sum, avg, collect" ; Tom added avg, collect (flip doesn't work)
+		/group "One of count, max, min, sum, avg, collect" ; Tom added avg, collect (flip doesn't work) ;flip, 
 			having [word! block!] "Word or expression that can reference the initial result set column as count, flip, max, etc"
 		/order "Sort result set"
 		/save "Write result to a delimited or Excel file"
@@ -561,9 +561,9 @@ context [
 		]
 		if group [
 			i: s: c: 0 res: copy [] blk: copy []
-			sum: funct [blk [block!]][i: 0 foreach n blk [i: i + n]]
-			avg: funct [blk [block!]][divide sum blk length? blk]
-			get-res: [
+			sum: funct [blk [block!]][i: 0 foreach n blk [i: i + n]] ; Tom
+			avg: funct [blk [block!]][divide sum blk length? blk] ; Tom
+			get-res: [ ; Tom
 				foreach operation having [
 					append res switch operation [
 						max [first maximum-of val]
@@ -576,7 +576,7 @@ context [
 				] 
 				insert insert tail blk group either (length? res) = 1 [res][reduce [res]]
 			]
-			unless (length? having: to block! having) = (length? intersect having [count flip max min sum avg collect])
+			unless (length? having: to block! having) = (length? intersect having [count max min sum avg collect]) ;flip ; Tom 
 				[cause-error 'user 'message "Invalid group operation"]
 			either size = 1 [
 				foreach operation having [
